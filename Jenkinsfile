@@ -8,5 +8,27 @@ pipeline {
                 checkout scm
             }
         }
+
+        stage('Restore') {
+            steps {
+                echo 'Restaurando pacotes e dependências do NuGet...'
+                sh 'dotnet restore'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Compilando a aplicação .NET...'
+                sh 'dotnet build --configuration Release --no-restore'
+            }
+        }
+
+           stage('Test') {
+            steps {
+                echo 'Executando a suíte de testes unitários...'
+                sh 'dotnet test --configuration Release --no-build --verbosity normal'
+            }
+        }
+
     }
 }
