@@ -51,8 +51,8 @@ pipeline {
             steps {
                 echo 'Iniciando o deploy direto para a AWS...'
                 
-                sh 'apt-get update && apt-get install -y openssh-client'
-                sh 'mkdir -p ~/.ssh && echo "StrictHostKeyChecking no" >> ~/.ssh/config'
+                // sh 'apt-get update && apt-get install -y openssh-client'
+                // sh 'mkdir -p ~/.ssh && echo "StrictHostKeyChecking no" >> ~/.ssh/config'
 
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-aula02', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     
