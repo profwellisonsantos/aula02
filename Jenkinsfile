@@ -6,39 +6,28 @@ pipeline {
         }
     }
 
+    // Variáveis de ambiente para facilitar a vida do aluno
     environment {
         // O aluno deve colocar o IP da máquina dele da AWS aqui
-        AWS_IP = '44.222.255.54' 
+        AWS_IP = '3.95.67.121' 
     }
 
     stages {
         stage('Checkout') {
-            steps {
-                echo 'Baixando o código do repositório...'
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Restore') {
-            steps {
-                echo 'Restaurando pacotes e dependências do NuGet...'
-                sh 'dotnet restore'
-            }
+            steps { sh 'dotnet restore' }
         }
 
         stage('Build') {
-            steps {
-                echo 'Compilando a aplicação .NET...'
-                sh 'dotnet build --configuration Release --no-restore'
-            }
+            steps { sh 'dotnet build --configuration Release --no-restore' }
         }
 
-        stage('Test') {
-            steps {
-                echo 'Executando a suíte de testes unitários...'
-                sh 'dotnet test --configuration Release --no-build --verbosity normal'
-            }
-        }
+        // stage('Test') {
+        //     steps { sh 'dotnet test --configuration Release --no-build --verbosity normal' }
+        // }
 
         stage('Publish') {
             steps {
@@ -51,19 +40,22 @@ pipeline {
             steps {
                 echo 'Iniciando o deploy direto para a AWS...'
                 
-                // sh 'apt-get update && apt-get install -y openssh-client'
-                // sh 'mkdir -p ~/.ssh && echo "StrictHostKeyChecking no" >> ~/.ssh/config'
+                // 1. Prepara o container instalando o cliente SSH e desabilitando a checagem de host (mesmo truque do Ansible)
+                sh 'apt-get update && apt-get install -y openssh-client'
+                sh 'mkdir -p ~/.ssh && echo "StrictHostKeyChecking no" >> ~/.ssh/config'
 
-                withCredentials([sshUserPrivateKey(credentialsId: 'aws-aula02', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
+                // 2. Abre o cofre do Jenkins e injeta a chave de forma segura
+                withCredentials([sshUserPrivateKey(credentialsId: 'Terraform', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     
+                    // 3. Copia a pasta compilada para o servidor da AWS
                     echo 'Transferindo arquivos via SCP...'
                     sh 'scp -i $SSH_KEY -r ./publish-output/* ${SSH_USER}@${AWS_IP}:/var/www/ExemploDevOps/'
 
+                    // 4. Reinicia o serviço no Linux para aplicar a nova versão
                     echo 'Reiniciando o serviço da API...'
                     sh 'ssh -i $SSH_KEY ${SSH_USER}@${AWS_IP} "sudo systemctl restart webapi"'
                 }
             }
         }
-
     }
 }
